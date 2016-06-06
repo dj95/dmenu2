@@ -320,7 +320,9 @@ drawmenu(void) {
 	dc->y = 0;
 	dc->h = bh;
 
+    //drawrect(dc, 0, 0, mw, mh, False, 0);
     drawrect(dc, 0, 0, mw, mh, False, getcolor(dc, bordercolor));
+	//drawrect(dc, 1, 1, mw-2, mh-2, True, 0);
 	drawrect(dc, 1, 1, mw-2, mh-2, True, normcol->BG);
 
 	if(prompt && *prompt) {
@@ -335,6 +337,7 @@ drawmenu(void) {
 	dc->w = (lines > 0 || !matches) ? mw - dc->x : inputw;
 	drawtext(dc, maskin ? createmaskinput(maskinput, length) : text, normcol);
 	if((curpos = textnw(dc, maskin ? maskinput : text, length) + dc->font.height/2) < dc->w){
+		//drawrect(dc, curpos, (dc->h - dc->font.height)/2 + 1, 1, dc->font.height -1, True, 0);
 		drawrect(dc, curpos, (dc->h - dc->font.height)/2 + 1, 1, dc->font.height -1, True, normcol->FG);
     }
 
@@ -897,12 +900,14 @@ setup(void) {
 
 	/* create dim window */
 	if(dimopacity > 0) {
+        swa.colormap = dc->cmap;
 		swa.background_pixel = dimcol->BG;
+		swa.border_pixel = 0;
 		swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
 		dim = XCreateWindow(dc->dpy, root, dimx, dimy, dimw, dimh, 0,
-	                    DefaultDepth(dc->dpy, screen), CopyFromParent,
-	                    DefaultVisual(dc->dpy, screen),
-	                    CWOverrideRedirect | CWBackPixel | CWEventMask, &swa);
+	                    dc->vinfo->depth, InputOutput,
+	                    dc->vinfo->visual,
+	                    CWOverrideRedirect | CWColormap | CWBackPixel | CWEventMask | CWBorderPixel, &swa);
 		XClassHint dimhint = { .res_name = dimname, .res_class = class };
   	XSetClassHint(dc->dpy, dim, &dimhint);
 
@@ -914,14 +919,16 @@ setup(void) {
 
 		XMapRaised(dc->dpy, dim);
 	}
-
+   
 	/* create menu window */
+    swa.colormap = dc->cmap;
 	swa.background_pixel = normcol->BG;
+    swa.border_pixel = 0;
 	swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
 	win = XCreateWindow(dc->dpy, root, x, y, mw, mh, 0,
-	                    DefaultDepth(dc->dpy, screen), CopyFromParent,
-	                    DefaultVisual(dc->dpy, screen),
-	                    CWOverrideRedirect | CWBackPixel | CWEventMask, &swa);
+	                    dc->vinfo->depth, InputOutput,
+	                    dc->vinfo->visual,
+	                    CWOverrideRedirect | CWColormap | CWBackPixel | CWEventMask | CWBorderPixel, &swa);
   XClassHint hint = { .res_name = name, .res_class = class };
   XSetClassHint(dc->dpy, win, &hint);
 

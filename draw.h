@@ -9,6 +9,8 @@ typedef struct {
 	GC gc;
 	Pixmap canvas;
 	XftDraw *xftdraw;
+    XVisualInfo *vinfo;
+    Colormap cmap;
 	struct {
 		int ascent;
 		int descent;
