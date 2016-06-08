@@ -56,11 +56,11 @@ static int inputw, promptw;
 static size_t cursor = 0;
 static const char *font = NULL;
 static const char *prompt = "λ";
-static const char *normbgcolor = "#191919";
+static const char *normbgcolor = "#05191919";
 static const char *normfgcolor = "#268bd2";
-static const char *selbgcolor  = "#268bd2";
+static const char *selbgcolor  = "#ff268bd2";
 static const char *selfgcolor  = "#191919";
-static const char *bordercolor = "#191919";
+static const char *bordercolor = "#00000000";
 static const char *dimcolor = NULL;
 static char *name = "dmenu";
 static char *class = "Dmenu";
@@ -232,7 +232,7 @@ read_resourses(void) {
 	}
 	/* Set default colors if they are not set */
 	if( normbgcolor == NULL )
-		normbgcolor = "#222222";
+		normbgcolor = "#ff222222";
 	if( normfgcolor == NULL )
 		normfgcolor = "#bbbbbb";
 	if( selbgcolor == NULL )

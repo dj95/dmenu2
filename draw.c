@@ -109,13 +109,19 @@ freedc(DC *dc) {
 
 unsigned long
 getcolor(DC *dc, const char *colstr) {
-	Colormap cmap = dc->cmap;
-	XColor color;
-
-	//if(!XAllocNamedColor(dc->dpy, cmap, colstr, &color, &color))
-	//	eprintf("cannot allocate color '%s'\n", colstr);
-	//return color.pixel;
-    return 0;
+    char color[9];
+    for (int i=0; i < 9; i++) {
+        if (strlen(colstr) == 9) {
+            color[i] = colstr[i+1];
+        } else if (strlen(colstr) == 7) {
+            if (i==0 || i==1) {
+                color[i] = 'F';
+            } else {
+                color[i] = colstr[i-1];
+            }
+        }
+    }
+    return strtoul(color, 0, 16);
 }
 
 ColorSet *
