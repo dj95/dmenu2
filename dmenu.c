@@ -81,6 +81,7 @@ static Bool running = True;
 static Bool filter = False;
 static Bool maskin = False;
 static Bool noinput = False;
+static Bool spotlight = False;
 static int ret = 0;
 static Bool quiet = False;
 static DC *dc;
@@ -125,11 +126,12 @@ main(int argc, char *argv[]) {
 			fstrstr = cistrstr;
 			fstrchr = strchri;
 		}
-      else if(!strcmp(argv[i], "-mask")) /* password-style input */
-         maskin = True;
-      else if(!strcmp(argv[i], "-noinput"))
-         noinput = True;
-
+        else if(!strcmp(argv[i], "-mask")) /* password-style input */
+           maskin = True;
+        else if(!strcmp(argv[i], "-noinput"))
+           noinput = True;
+        else if(!strcmp(argv[i], "-spotlight")) /* spotlight mode */
+            spotlight = 1;
 		else if(!strcmp(argv[i], "-t"))
 			match = matchtok;
 		else if(i+1 == argc)
@@ -320,10 +322,18 @@ drawmenu(void) {
 	dc->y = 0;
 	dc->h = bh;
 
-    //drawrect(dc, 0, 0, mw, mh, False, 0);
-    drawrect(dc, 0, 0, mw, mh, False, getcolor(dc, bordercolor));
-	//drawrect(dc, 1, 1, mw-2, mh-2, True, 0);
-	drawrect(dc, 1, 1, mw-2, mh-2, True, normcol->BG);
+    if(spotlight) {
+        if(!quiet || strlen(text) > 0) {
+            XMoveResizeWindow(dc->dpy, win, xoffset, yoffset, mw, mh);
+            drawrect(dc, 0, 0, mw, mh, True, normcol->BG);
+        } else {
+            XMoveResizeWindow(dc->dpy, win, xoffset, yoffset, mw, 58);
+            drawrect(dc, 0, 0, mw, 58, True, normcol->BG);
+        }
+    } else {
+        drawrect(dc, 0, 0, mw, mh, False, normcol->BG);
+        drawrect(dc, 1, 1, mw-2, mh-2, True, normcol->BG);
+    }
 
 	if(prompt && *prompt) {
         dc->x++;
@@ -334,13 +344,25 @@ drawmenu(void) {
 
 
 	/* draw input field */
+    if (spotlight) {
+        dc->y += 20;
+        initfont(dc, "SFNS Display Thin-18");
+    }
 	dc->w = (lines > 0 || !matches) ? mw - dc->x : inputw;
 	drawtext(dc, maskin ? createmaskinput(maskinput, length) : text, normcol);
-	if((curpos = textnw(dc, maskin ? maskinput : text, length) + dc->font.height/2) < dc->w){
-		//drawrect(dc, curpos, (dc->h - dc->font.height)/2 + 1, 1, dc->font.height -1, True, 0);
-		drawrect(dc, curpos, (dc->h - dc->font.height)/2 + 1, 1, dc->font.height -1, True, normcol->FG);
+    if (spotlight && strlen(text) <= 0) {
+        drawtext(dc, "Search...", normcol);
     }
 
+	if((curpos = textnw(dc, maskin ? maskinput : text, length) + dc->font.height/2) < dc->w){
+		drawrect(dc, curpos, (dc->h - dc->font.height)/2 + 1, 1, dc->font.height -1, True, 0);
+		//drawrect(dc, curpos, (dc->h - dc->font.height)/2 + 1, 1, dc->font.height -1, True, normcol->FG);
+    }
+
+    if (spotlight) {
+        initfont(dc, "SFNS Display:size=10");
+        dc->y += 20;
+    }
     if(!quiet || strlen(text) > 0) {
         if(lines > 0) {
             /* draw vertical list */
@@ -368,7 +390,8 @@ drawmenu(void) {
         }
     }
 
-	mapdc(dc, win, mw, mh);
+    mapdc(dc, win, mw, mh);
+
 }
 
 void
@@ -826,7 +849,11 @@ setup(void) {
 	/* calculate menu geometry */
 	bh = (line_height > dc->font.height + 2) ? line_height : dc->font.height + 2;
 	lines = MAX(lines, 0);
-	mh = (lines + 1) * bh;
+    if (spotlight) {
+        mh = (lines + 1) * bh + 40;
+    } else {
+        mh = (lines + 1) * bh;
+    }
 #ifdef XINERAMA
 	if((info = XineramaQueryScreens(dc->dpy, &n))) {
 		int a, j, di, i = 0, area = 0;
@@ -954,6 +981,6 @@ usage(void) {
 				"             [-s screen] [-name name] [-class class] [ -o opacity]\n"
 				"             [-dim opcity] [-dc color] [-l lines] [-p prompt] [-fn font]\n"
 	      "             [-x xoffset] [-y yoffset] [-h height] [-w width]\n"
-	      "             [-nb color] [-nf color] [-sb color] [-sf color] [-v]\n", stderr);
+	      "             [-nb color] [-nf color] [-sb color] [-sf color] [-spotlight] [-v]\n", stderr);
 	exit(EXIT_FAILURE);
 }
