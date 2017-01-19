@@ -75,6 +75,7 @@ static int snum = -1;
 static ColorSet *normcol;
 static ColorSet *selcol;
 static ColorSet *dimcol;
+static ColorSet *plhcol;
 static Atom clip, utf8;
 static Bool topbar = True;
 static Bool running = True;
@@ -184,6 +185,7 @@ main(int argc, char *argv[]) {
 	normcol = initcolor(dc, normfgcolor, normbgcolor);
 	selcol = initcolor(dc, selfgcolor, selbgcolor);
 	dimcol = initcolor(dc, dimcolor, dimcolor);
+    plhcol = initcolor(dc, "#6D6D6D", normbgcolor);
 
    if(noinput) {
       grabkeyboard();
@@ -335,30 +337,35 @@ drawmenu(void) {
         drawrect(dc, 1, 1, mw-2, mh-2, True, normcol->BG);
     }
 
+
+    if (spotlight) {
+        dc->y += 20;
+        initfont(dc, "Ionicons-18");
+    }
 	if(prompt && *prompt) {
         dc->x++;
 		dc->w = promptw;
-		drawtext(dc, prompt, selcol);
-		dc->x = dc->w;
+		drawtext(dc, prompt, normcol);
+		dc->x = dc->w - 13;
 	}
 
 
 	/* draw input field */
     if (spotlight) {
-        dc->y += 20;
         initfont(dc, "SFNS Display Thin-18");
     }
 	dc->w = (lines > 0 || !matches) ? mw - dc->x : inputw;
 	drawtext(dc, maskin ? createmaskinput(maskinput, length) : text, normcol);
     if (spotlight && strlen(text) <= 0) {
-        drawtext(dc, "Search...", normcol);
+        drawtext(dc, "Search...", plhcol);
     }
 
 	if((curpos = textnw(dc, maskin ? maskinput : text, length) + dc->font.height/2) < dc->w){
-		drawrect(dc, curpos, (dc->h - dc->font.height)/2 + 1, 1, dc->font.height -1, True, 0);
-		//drawrect(dc, curpos, (dc->h - dc->font.height)/2 + 1, 1, dc->font.height -1, True, normcol->FG);
+		//drawrect(dc, curpos, (dc->h - dc->font.height)/2 + 1, 1, dc->font.height -1, True, 0);
+		drawrect(dc, curpos, (dc->h - dc->font.height)/2 + 1, 1, dc->font.height -1, True, normcol->FG);
     }
 
+    dc->x = 0;
     if (spotlight) {
         initfont(dc, "SFNS Display:size=10");
         dc->y += 20;
@@ -919,7 +926,9 @@ setup(void) {
 
 	x += xoffset;
 	mw = width ? width : mw;
+    initfont(dc, "Ionicons-18");
 	promptw = (prompt && *prompt) ? textw(dc, prompt) : 0;
+    initfont(dc, font);
 	inputw = MIN(inputw, mw/3);
 	match();
 
