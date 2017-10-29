@@ -18,7 +18,7 @@ XFTLIBS  = -lXft -lXrender -lfreetype -lz -lfontconfig
 
 # includes and libs
 INCS = -I${X11INC} ${XFTINC}
-LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${XFTLIBS}
+LIBS = -L${X11LIB} -lX11 ${XINERAMALIBS} ${XFTLIBS} -lXext
 
 # flags
 CPPFLAGS = -D_BSD_SOURCE -D_POSIX_C_SOURCE=2 -DVERSION=\"${VERSION}\" ${XINERAMAFLAGS}

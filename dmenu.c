@@ -15,6 +15,7 @@
 #ifdef XINERAMA
 #include <X11/extensions/Xinerama.h>
 #endif
+#include <X11/extensions/shape.h>
 #include "draw.h"
 
 #define INTERSECT(x,y,w,h,r)  (MAX(0, MIN((x)+(w),(r).x_org+(r).width)  - MAX((x),(r).x_org)) \
@@ -83,6 +84,7 @@ static Bool filter = False;
 static Bool maskin = False;
 static Bool noinput = False;
 static Bool spotlight = False;
+static int corner_radius = 0;
 static int ret = 0;
 static Bool quiet = False;
 static DC *dc;
@@ -176,6 +178,8 @@ main(int argc, char *argv[]) {
 			selfgcolor = argv[++i];
         else if(!strcmp(argv[i], "-bc"))  /* selected border color */
             bordercolor = argv[++i];
+        else if(!strcmp(argv[i], "-corner_radius"))  /* corner radius for round corners */
+            corner_radius = atoi(argv[++i]);
 		else
 			usage();
 
@@ -316,21 +320,33 @@ createmaskinput(char *maskinput, int length)
 void
 drawmenu(void) {
 	int curpos;
-   char maskinput[sizeof text];
-   int length = maskin ? utf8length() : cursor;
+    char maskinput[sizeof text];
+    int length = maskin ? utf8length() : cursor;
 	Item *item;
+    Bool border = corner_radius == 0;
 
 	dc->x = 0;
 	dc->y = 0;
 	dc->h = bh;
 
+
     if(spotlight) {
         if(!quiet || strlen(text) > 0) {
             XMoveResizeWindow(dc->dpy, win, xoffset, yoffset, mw, mh);
-            drawrect(dc, 0, 0, mw, mh, True, normcol->BG);
+            if (corner_radius == 0) {
+                drawrect(dc, 0, 0, mw, mh, False, normcol->FG);
+                drawrect(dc, 1, 1, mw - 2, mh - 2, True, normcol->BG);
+            } else {
+                drawrect(dc, 0, 0, mw, mh, True, normcol->BG);
+            }
         } else {
             XMoveResizeWindow(dc->dpy, win, xoffset, yoffset, mw, 58);
-            drawrect(dc, 0, 0, mw, 58, True, normcol->BG);
+            if (corner_radius == 0) {
+                drawrect(dc, 0, 0, mw, 58, False, normcol->FG);
+                drawrect(dc, 1, 1, mw - 2, 56, True, normcol->BG);
+            } else {
+                drawrect(dc, 0, 0, mw, 58, True, normcol->BG);
+            }
         }
     } else {
         drawrect(dc, 0, 0, mw, mh, False, normcol->BG);
@@ -345,7 +361,7 @@ drawmenu(void) {
 	if(prompt && *prompt) {
         dc->x++;
 		dc->w = promptw;
-		drawtext(dc, prompt, normcol);
+		drawtext(dc, prompt, normcol, border);
 		dc->x = dc->w - 13;
 	}
 
@@ -355,9 +371,9 @@ drawmenu(void) {
         initfont(dc, "SFNS Display Thin-18");
     }
 	dc->w = (lines > 0 || !matches) ? mw - dc->x : inputw;
-	drawtext(dc, maskin ? createmaskinput(maskinput, length) : text, normcol);
+	drawtext(dc, maskin ? createmaskinput(maskinput, length) : text, normcol, border);
     if (spotlight && strlen(text) <= 0) {
-        drawtext(dc, "Search...", plhcol);
+        drawtext(dc, "Search...", plhcol, border);
     }
 
 	if((curpos = textnw(dc, maskin ? maskinput : text, length) + dc->font.height/2) < dc->w){
@@ -376,7 +392,7 @@ drawmenu(void) {
             dc->w = mw - dc->x;
             for(item = curr; item != next; item = item->right) {
                 dc->y += dc->h;
-                drawtext(dc, item->text, (item == sel) ? selcol : normcol);
+                drawtext(dc, item->text, (item == sel) ? selcol : normcol, border);
             }
         }
         else if(matches) {
@@ -384,16 +400,16 @@ drawmenu(void) {
             dc->x += inputw;
             dc->w = textw(dc, "<");
             if(curr->left)
-                drawtext(dc, "<", normcol);
+                drawtext(dc, "<", normcol, border);
             for(item = curr; item != next; item = item->right) {
                 dc->x += dc->w;
                 dc->w = MIN(textw(dc, item->text), mw - dc->x - textw(dc, ">"));
-                drawtext(dc, item->text, (item == sel) ? selcol : normcol);
+                drawtext(dc, item->text, (item == sel) ? selcol : normcol, border);
             }
             dc->w = textw(dc, ">");
             dc->x = mw - dc->w;
             if(next)
-                drawtext(dc, ">", normcol);
+                drawtext(dc, ">", normcol, border);
         }
     }
 
@@ -810,6 +826,42 @@ readstdin(void) {
 }
 
 void
+x_win_round_corners(void) {
+    XWindowAttributes win_attr;
+    XGetWindowAttributes(dc->dpy, win, &win_attr);
+
+    int width = win_attr.width + win_attr.border_width;
+    int height = win_attr.height + win_attr.border_width;
+
+    Pixmap mask = XCreatePixmap(dc->dpy, win, width, height, 1);
+    XGCValues xgcv;
+
+    GC shape_gc = XCreateGC(dc->dpy, mask, 0, &xgcv);
+
+    int rad = corner_radius;
+    int dia = 2 * rad;
+
+    XSetForeground(dc->dpy, shape_gc, 0);
+    XFillRectangle(dc->dpy, mask, shape_gc, 0, 0, width, height);
+
+    XSetForeground(dc->dpy, shape_gc, 1);
+
+    XFillArc(dc->dpy, mask, shape_gc, 0, 0, dia, dia, 0, 23040);
+    XFillArc(dc->dpy, mask, shape_gc, width-dia-1, 0, dia, dia, 0, 23040);
+    XFillArc(dc->dpy, mask, shape_gc, 0, height-dia-1, dia, dia, 0, 23040);
+    XFillArc(dc->dpy, mask, shape_gc, width-dia-1, height-dia-1, dia, dia,
+            0, 23040);
+
+    XFillRectangle(dc->dpy, mask, shape_gc, rad, 0, width-dia, height);
+    XFillRectangle(dc->dpy, mask, shape_gc, 0, rad, width, height-dia);
+
+    XShapeCombineMask(dc->dpy, win, ShapeBounding, 0, 0, mask, ShapeSet);
+
+    XFreePixmap(dc->dpy, mask);
+}
+
+
+void
 run(void) {
 	XEvent ev;
 
@@ -820,6 +872,8 @@ run(void) {
 		case Expose:
 			if(ev.xexpose.count == 0)
 				mapdc(dc, win, mw, mh);
+            //TODO: round corners
+            x_win_round_corners();
 			break;
 		case KeyPress:
 			keypress(&ev.xkey);
@@ -990,6 +1044,6 @@ usage(void) {
 				"             [-s screen] [-name name] [-class class] [ -o opacity]\n"
 				"             [-dim opcity] [-dc color] [-l lines] [-p prompt] [-fn font]\n"
 	      "             [-x xoffset] [-y yoffset] [-h height] [-w width]\n"
-	      "             [-nb color] [-nf color] [-sb color] [-sf color] [-spotlight] [-v]\n", stderr);
+	      "             [-nb color] [-nf color] [-sb color] [-sf color] [-spotlight] [-corner_radius radius_pixel] [-v]\n", stderr);
 	exit(EXIT_FAILURE);
 }

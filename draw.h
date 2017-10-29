@@ -29,7 +29,7 @@ typedef struct {
 } ColorSet;
 
 void drawrect(DC *dc, int x, int y, unsigned int w, unsigned int h, Bool fill, unsigned long color);
-void drawtext(DC *dc, const char *text, ColorSet *col);
+void drawtext(DC *dc, const char *text, ColorSet *col, Bool border);
 void drawtextn(DC *dc, const char *text, size_t n, ColorSet *col);
 void freecol(DC *dc, ColorSet *col);
 void eprintf(const char *fmt, ...);

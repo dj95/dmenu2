@@ -22,7 +22,7 @@ drawrect(DC *dc, int x, int y, unsigned int w, unsigned int h, Bool fill, unsign
 }
 
 void
-drawtext(DC *dc, const char *text, ColorSet *col) {
+drawtext(DC *dc, const char *text, ColorSet *col, Bool border) {
 	char buf[BUFSIZ];
 	size_t mn, n = strlen(text);
 
@@ -35,7 +35,11 @@ drawtext(DC *dc, const char *text, ColorSet *col) {
 		for(n = MAX(mn-3, 0); n < mn; buf[n++] = '.');
 
 	//drawrect(dc, 0, 0, dc->w-1, dc->h-1, True, 0);
-	drawrect(dc, 0, 0, dc->w-1, dc->h-1, True, col->BG);
+    if (border) {
+        drawrect(dc, 1, 0, dc->w-2, dc->h-1, True, col->BG);
+    } else {
+        drawrect(dc, 0, 0, dc->w-0, dc->h-1, True, col->BG);
+    }
 	drawtextn(dc, buf, mn, col);
 }
 
